@@ -1,0 +1,83 @@
+name: Deploy
+
+on:
+  push:
+    branches: [staging, main]
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [staging, main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' && github.event.workflow_run.conclusion == 'success'
+    environment:
+      name: staging
+      url: https://staging.tasork.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy frontend to Vercel (staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: apps/web
+
+      - name: Deploy backend to Railway (staging)
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+          service: tasork-api-staging
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          npm ci --workspace=apps/api
+          npm run db:migrate:deploy --workspace=apps/api
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
+    environment:
+      name: production
+      url: https://tasork.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy frontend to Vercel (production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: apps/web
+
+      - name: Deploy backend to Railway (production)
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
+          service: tasork-api-production
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          npm ci --workspace=apps/api
+          npm run db:migrate:deploy --workspace=apps/api
+
+      - name: Notify team
+        if: always()
+        run: echo "Production deploy finished with status ${{ job.status }}"
+        # Wire to Slack/email notification once the notifications module ships
+        # (docs/25_Notifications.md) — placeholder step keeps the job visible in the log.

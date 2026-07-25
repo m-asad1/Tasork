@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api
+Disallow: /account
+Disallow: /checkout
+Disallow: /auth
+
+Sitemap: https://tasork.com/sitemap.xml
