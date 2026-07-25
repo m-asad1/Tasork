@@ -4,12 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, useToast } from '@tasork/ui';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 
 import { apiClient } from '@/lib/api-client';
 import { type ResetPasswordInput, resetPasswordSchema } from '@/lib/validation/auth';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -69,5 +70,13 @@ export default function ResetPasswordPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <ResetPasswordForm />
+    </React.Suspense>
   );
 }

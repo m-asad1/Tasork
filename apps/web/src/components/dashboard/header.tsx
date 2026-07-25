@@ -9,6 +9,7 @@ import * as React from 'react';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { apiClient } from '@/lib/api-client';
+import { clearSessionCookies } from '@/lib/session-cookies';
 import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 
@@ -30,6 +31,7 @@ export function DashboardHeader() {
   async function handleLogout() {
     await apiClient.post('/auth/logout');
     clear();
+    clearSessionCookies();
     router.push('/login');
   }
 

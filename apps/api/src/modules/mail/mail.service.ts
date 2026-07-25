@@ -11,15 +11,32 @@ interface SendMailOptions {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly resend: Resend;
+  private readonly resend: Resend | null;
   private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
-    this.resend = new Resend(this.config.get<string>('mail.resendApiKey'));
+    const apiKey = this.config.get<string>('mail.resendApiKey');
     this.from = this.config.get<string>('mail.from')!;
+
+    // The Resend SDK throws synchronously if constructed with an empty key,
+    // which would crash the whole app on boot in any environment that hasn't
+    // configured email yet (e.g. fresh local dev). Fall back to a "dry run"
+    // mode that logs instead of sending, so auth/registration keep working
+    // even before RESEND_API_KEY is set.
+    if (!apiKey) {
+      this.logger.warn('RESEND_API_KEY is not set — emails will be logged instead of sent.');
+      this.resend = null;
+    } else {
+      this.resend = new Resend(apiKey);
+    }
   }
 
   async send({ to, subject, html }: SendMailOptions) {
+    if (!this.resend) {
+      this.logger.log(`[dry run] Would send "${subject}" to ${to}`);
+      return;
+    }
+
     try {
       await this.resend.emails.send({ from: this.from, to, subject, html });
     } catch (error) {

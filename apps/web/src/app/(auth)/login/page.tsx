@@ -4,16 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, useToast } from '@tasork/ui';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { FcGoogle } from 'react-icons/fc';
 
 import { apiClient } from '@/lib/api-client';
+import { setSessionCookies } from '@/lib/session-cookies';
 import { type LoginInput, loginSchema } from '@/lib/validation/auth';
 import { useAuthStore } from '@/store/auth-store';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { setUser, setAccessToken } = useAuthStore();
 
@@ -28,7 +31,12 @@ export default function LoginPage() {
     onSuccess: ({ data }) => {
       setAccessToken(data.accessToken);
       setUser(data.user);
-      router.push('/dashboard');
+      // Lets middleware recognize the session on the very next navigation —
+      // see docs/session-cookies.ts. Must happen before the push, since
+      // middleware checks cookies on the request that push() triggers.
+      setSessionCookies(data.user.role);
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectTo);
     },
     onError: () => {
       toast({ variant: 'destructive', title: 'Login failed', description: 'Check your email and password and try again.' });
@@ -75,5 +83,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
   );
 }
