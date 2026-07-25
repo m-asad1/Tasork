@@ -40,15 +40,33 @@ export interface ButtonProps
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button';
+
+    // Radix's <Slot> requires exactly one React element child so it can clone
+    // props (className, ref, ...) onto it. Conditionally rendering the loading
+    // icon as a sibling of `children` (`{loading && <Loader2 />}{children}`)
+    // makes that two children — `false` still counts — which breaks `asChild`
+    // usages like `<Button asChild><Link>...</Link></Button>` at build time
+    // with "Slot failed to slot onto its children". Collapsing to a single
+    // node keeps both the plain-button and asChild cases working.
+    const content = loading ? (
+      <>
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        {children}
+      </>
+    ) : (
+      children
+    );
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={disabled || loading}
+        // `disabled` isn't a valid attribute on the arbitrary element `asChild`
+        // renders (e.g. a Next.js <Link>), so only apply it for the real <button>.
+        {...(!asChild && { disabled: disabled || loading })}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-        {children}
+        {content}
       </Comp>
     );
   },
