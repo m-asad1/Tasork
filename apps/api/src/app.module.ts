@@ -7,7 +7,9 @@ import { HealthController } from '@/app.controller';
 import configuration from '@/config/configuration';
 import { validateEnv } from '@/config/env.validation';
 import { AuthModule } from '@/modules/auth/auth.module';
+import { FilesModule } from '@/modules/files/files.module';
 import { MailModule } from '@/modules/mail/mail.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { QueueModule } from '@/modules/queue/queue.module';
 import { RealtimeModule } from '@/modules/realtime/realtime.module';
@@ -27,9 +29,11 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     RedisModule,
     QueueModule,
     MailModule,
+    RealtimeModule,
+    FilesModule,
+    NotificationsModule,
     UsersModule,
     AuthModule,
-    RealtimeModule,
   ],
   controllers: [HealthController],
   providers: [

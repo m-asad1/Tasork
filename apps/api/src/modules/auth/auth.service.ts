@@ -12,6 +12,7 @@ import { AuthProvider, type User } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { nanoid } from 'nanoid';
 
+import { parseUserAgentLabel } from '@/common/utils/parse-user-agent';
 import { MailService } from '@/modules/mail/mail.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UsersService } from '@/modules/users/users.service';
@@ -113,6 +114,9 @@ export class AuthService {
 
     const isValid = await argon2.verify(user.passwordHash, password);
     if (!isValid) {
+      await this.prisma.loginHistoryEntry.create({
+        data: { userId: user.id, success: false },
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
     if (!user.isActive) {
@@ -124,6 +128,10 @@ export class AuthService {
   async login(user: User, meta: { userAgent?: string; ipAddress?: string }) {
     const accessToken = this.signAccessToken(user);
     const { rawToken: refreshToken } = await this.issueRefreshToken(user, meta);
+
+    await this.prisma.loginHistoryEntry.create({
+      data: { userId: user.id, success: true, userAgent: meta.userAgent, ipAddress: meta.ipAddress },
+    });
 
     return { accessToken, refreshToken, user: this.usersService.toPublic(user) };
   }
@@ -165,6 +173,7 @@ export class AuthService {
         tokenHash,
         userAgent: meta.userAgent,
         ipAddress: meta.ipAddress,
+        label: parseUserAgentLabel(meta.userAgent),
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
       },
     });

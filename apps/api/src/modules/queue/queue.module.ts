@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 
 export const EMAIL_QUEUE = 'EMAIL_QUEUE';
 export const NOTIFICATION_QUEUE = 'NOTIFICATION_QUEUE';
+export const FILE_SCAN_QUEUE = 'FILE_SCAN_QUEUE';
 
 /**
  * Central place for named BullMQ queues (email delivery, in-app notifications,
@@ -30,7 +31,15 @@ export const NOTIFICATION_QUEUE = 'NOTIFICATION_QUEUE';
           connection: new Redis(config.get<string>('redis.url')!, { maxRetriesPerRequest: null }),
         }),
     },
+    {
+      provide: FILE_SCAN_QUEUE,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        new Queue(FILE_SCAN_QUEUE, {
+          connection: new Redis(config.get<string>('redis.url')!, { maxRetriesPerRequest: null }),
+        }),
+    },
   ],
-  exports: [EMAIL_QUEUE, NOTIFICATION_QUEUE],
+  exports: [EMAIL_QUEUE, NOTIFICATION_QUEUE, FILE_SCAN_QUEUE],
 })
 export class QueueModule {}
