@@ -11,6 +11,7 @@ import { FilesModule } from '@/modules/files/files.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
+import { ProjectsModule } from '@/modules/projects/projects.module';
 import { QueueModule } from '@/modules/queue/queue.module';
 import { RealtimeModule } from '@/modules/realtime/realtime.module';
 import { RedisModule } from '@/modules/redis/redis.module';
@@ -34,6 +35,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     NotificationsModule,
     UsersModule,
     AuthModule,
+    ProjectsModule,
   ],
   controllers: [HealthController],
   providers: [
