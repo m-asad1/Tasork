@@ -9,6 +9,7 @@ import * as React from 'react';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { apiClient } from '@/lib/api-client';
+import { clearSessionCookies } from '@/lib/session-cookies';
 import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
 
@@ -30,6 +31,7 @@ export function DashboardHeader() {
   async function handleLogout() {
     await apiClient.post('/auth/logout');
     clear();
+    clearSessionCookies(); // Clear the session cookies for middleware
     router.push('/login');
   }
 
@@ -45,7 +47,13 @@ export function DashboardHeader() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={() => setMobileNavOpen(true)}
+          aria-label="Open menu"
+        >
           <Menu className="h-5 w-5" />
         </Button>
         <nav aria-label="Breadcrumb" className="hidden items-center gap-1.5 text-sm sm:flex">
@@ -54,7 +62,11 @@ export function DashboardHeader() {
               {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
               <Link
                 href={crumb.href}
-                className={idx === crumbs.length - 1 ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}
+                className={
+                  idx === crumbs.length - 1
+                    ? 'font-medium text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }
               >
                 {crumb.label}
               </Link>
@@ -89,12 +101,18 @@ export function DashboardHeader() {
               </div>
               <div className="my-1 h-px bg-border" />
               <DropdownMenu.Item asChild>
-                <Link href="/dashboard/settings" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/10">
+                <Link
+                  href="/dashboard/settings"
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/10"
+                >
                   <User className="h-4 w-4" /> Profile
                 </Link>
               </DropdownMenu.Item>
               <DropdownMenu.Item asChild>
-                <Link href="/dashboard/settings" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/10">
+                <Link
+                  href="/dashboard/settings"
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent/10"
+                >
                   <Settings className="h-4 w-4" /> Settings
                 </Link>
               </DropdownMenu.Item>

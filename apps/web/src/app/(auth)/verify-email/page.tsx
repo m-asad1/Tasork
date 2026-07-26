@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Button } from '@tasork/ui';
 import { useMutation } from '@tanstack/react-query';
 import { CheckCircle2, Mail, XCircle } from 'lucide-react';
@@ -9,7 +10,7 @@ import * as React from 'react';
 
 import { apiClient } from '@/lib/api-client';
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
@@ -24,7 +25,6 @@ export default function VerifyEmailPage() {
 
   React.useEffect(() => {
     if (token) verifyMutation.mutate(token);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   if (token) {
@@ -47,8 +47,14 @@ export default function VerifyEmailPage() {
       <div className="space-y-4 text-center">
         <XCircle className="mx-auto h-12 w-12 text-destructive" />
         <h1 className="font-display text-2xl font-bold">Verification failed</h1>
-        <p className="text-sm text-muted-foreground">This link may have expired. Request a new one below.</p>
-        <Button className="w-full" onClick={() => resendMutation.mutate()} loading={resendMutation.isPending}>
+        <p className="text-sm text-muted-foreground">
+          This link may have expired. Request a new one below.
+        </p>
+        <Button
+          className="w-full"
+          onClick={() => resendMutation.mutate()}
+          loading={resendMutation.isPending}
+        >
           Resend verification email
         </Button>
       </div>
@@ -62,13 +68,27 @@ export default function VerifyEmailPage() {
       </div>
       <h1 className="font-display text-2xl font-bold">Verify your email</h1>
       <p className="text-sm text-muted-foreground">
-        We sent a verification link to <span className="font-medium text-foreground">{email ?? 'your email'}</span>.
+        We sent a verification link to{' '}
+        <span className="font-medium text-foreground">{email ?? 'your email'}</span>.
         Click it to activate your account.
       </p>
-      <Button variant="outline" className="w-full" onClick={() => resendMutation.mutate()} loading={resendMutation.isPending}>
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => resendMutation.mutate()}
+        loading={resendMutation.isPending}
+      >
         Resend email
       </Button>
       {resendMutation.isSuccess && <p className="text-xs text-success">Verification email resent.</p>}
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<p className="text-center text-sm text-muted-foreground">Loading...</p>}>
+      <VerifyEmailForm />
+    </Suspense>
   );
 }

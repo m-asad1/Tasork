@@ -11,12 +11,16 @@ interface AuthState {
   clear: () => void;
 }
 
-/**
- * Access tokens are kept in memory (persisted only for dev convenience);
- * the refresh token itself lives in an httpOnly cookie set by the API and
- * is never touched by client-side JS — see docs/14_Security.md and
- * docs/20_Authentication.md.
- */
+// Helper functions to manage a cookie for the middleware
+function setCookie(name: string, value: string, days = 7) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -24,12 +28,25 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       isAuthenticated: false,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
-      setAccessToken: (accessToken) => set({ accessToken }),
-      clear: () => set({ user: null, accessToken: null, isAuthenticated: false }),
+      setAccessToken: (accessToken) => {
+        set({ accessToken });
+        if (accessToken) {
+          setCookie('accessToken', accessToken);
+        } else {
+          deleteCookie('accessToken');
+        }
+      },
+      clear: () => {
+        set({ user: null, accessToken: null, isAuthenticated: false });
+        deleteCookie('accessToken');
+      },
     }),
     {
       name: 'tasork-auth',
-      partialize: (state) => ({ user: state.user }),
-    },
-  ),
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+      }),
+    }
+  )
 );

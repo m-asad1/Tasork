@@ -11,24 +11,40 @@ interface SendMailOptions {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly resend: Resend;
+  private readonly resend?: Resend;
   private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
-    this.resend = new Resend(this.config.get<string>('mail.resendApiKey'));
-    this.from = this.config.get<string>('mail.from')!;
+  const apiKey = this.config.get<string>('mail.resendApiKey');
+
+  this.from = this.config.get<string>('mail.from') ?? 'Tasork <noreply@localhost>';
+
+  if (apiKey) {
+    this.resend = new Resend(apiKey);
   }
+}
 
   async send({ to, subject, html }: SendMailOptions) {
-    try {
-      await this.resend.emails.send({ from: this.from, to, subject, html });
-    } catch (error) {
-      // Email delivery failures must never crash the request that triggered them;
-      // they're logged and (once the queue module wiring is complete) retried
-      // via the EMAIL_QUEUE — see docs/25_Notifications.md.
-      this.logger.error(`Failed to send email to ${to}: ${(error as Error).message}`);
-    }
+  if (!this.resend) {
+    this.logger.warn(
+      `Email skipped (development mode): ${subject} -> ${to}`
+    );
+    return;
   }
+
+  try {
+    await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    this.logger.error(
+      `Failed to send email to ${to}: ${(error as Error).message}`
+    );
+  }
+}
 
   sendVerificationEmail(to: string, verifyUrl: string) {
     return this.send({

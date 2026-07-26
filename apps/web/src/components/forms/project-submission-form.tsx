@@ -10,7 +10,8 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 
 import { FileDropzone } from '@/components/forms/file-dropzone';
-import { Step, StepProgress } from '@/components/forms/step-progress';
+import { StepProgress } from '@/components/forms/step-progress';
+import type { Step } from '@/components/forms/step-progress';
 import { apiClient } from '@/lib/api-client';
 import {
   BUDGET_OPTIONS,

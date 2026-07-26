@@ -26,13 +26,16 @@ export function ThemeToggle() {
     return <div className="h-10 w-10" aria-hidden="true" />;
   }
 
-  const current = (theme as Mode) ?? 'system';
+ const current: Mode =
+  theme === 'light' || theme === 'dark' || theme === 'system'
+    ? theme
+    : 'system';
   const Icon = ICONS[current];
 
   function cycle() {
-    const next = MODES[(MODES.indexOf(current) + 1) % MODES.length];
-    setTheme(next);
-  }
+  const next = MODES[(MODES.indexOf(current) + 1) % MODES.length] as Mode;
+  setTheme(next);
+}
 
   return (
     <Button

@@ -4,11 +4,15 @@ import { Button } from '@tasork/ui';
 import {
   FolderKanban,
   LayoutDashboard,
-  LucideIcon,
   MessageSquare,
   Receipt,
   Settings,
   ChevronLeft,
+  BarChart3,
+  FileStack,
+  LifeBuoy,
+  Tag,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -16,21 +20,44 @@ import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/navigation/logo';
 import { useUIStore } from '@/store/ui-store';
 
+// Map icon names to actual Lucide components
+export const iconMap = {
+  dashboard: LayoutDashboard,
+  projects: FolderKanban,
+  messages: MessageSquare,
+  invoices: Receipt,
+  settings: Settings,
+  analytics: BarChart3,
+  cms: FileStack,
+  support: LifeBuoy,
+  coupons: Tag,
+  users: Users,
+} as const;
+
+export type IconName = keyof typeof iconMap;
+
 export interface SidebarLink {
   label: string;
   href: string;
-  icon: LucideIcon;
+  iconName: IconName;
 }
 
-const CUSTOMER_LINKS: SidebarLink[] = [
-  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'My Projects', href: '/dashboard/projects', icon: FolderKanban },
-  { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-  { label: 'Invoices', href: '/dashboard/invoices', icon: Receipt },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+// Default customer links
+const DEFAULT_LINKS: SidebarLink[] = [
+  { label: 'Overview', href: '/dashboard', iconName: 'dashboard' },
+  { label: 'My Projects', href: '/dashboard/projects', iconName: 'projects' },
+  { label: 'Messages', href: '/dashboard/messages', iconName: 'messages' },
+  { label: 'Invoices', href: '/dashboard/invoices', iconName: 'invoices' },
+  { label: 'Settings', href: '/dashboard/settings', iconName: 'settings' },
 ];
 
-export function Sidebar({ links = CUSTOMER_LINKS, root = '/dashboard' }: { links?: SidebarLink[]; root?: string }) {
+export function Sidebar({
+  links = DEFAULT_LINKS,
+  root = '/dashboard',
+}: {
+  links?: SidebarLink[];
+  root?: string;
+}) {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
 
@@ -51,6 +78,7 @@ export function Sidebar({ links = CUSTOMER_LINKS, root = '/dashboard' }: { links
 
       <nav className="flex-1 space-y-1 p-3">
         {links.map((link) => {
+          const Icon = iconMap[link.iconName];
           const active = pathname === link.href || (link.href !== root && pathname?.startsWith(link.href));
           return (
             <Link
@@ -61,7 +89,7 @@ export function Sidebar({ links = CUSTOMER_LINKS, root = '/dashboard' }: { links
                 active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent/10 hover:text-foreground'
               }`}
             >
-              <link.icon className="h-4.5 w-4.5 shrink-0" />
+              <Icon className="h-4.5 w-4.5 shrink-0" />
               {!sidebarCollapsed && <span>{link.label}</span>}
             </Link>
           );
