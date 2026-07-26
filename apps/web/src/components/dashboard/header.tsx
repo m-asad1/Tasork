@@ -31,7 +31,7 @@ export function DashboardHeader() {
   async function handleLogout() {
     await apiClient.post('/auth/logout');
     clear();
-    clearSessionCookies(); // Clear the session cookies for middleware
+    clearSessionCookies();
     router.push('/login');
   }
 

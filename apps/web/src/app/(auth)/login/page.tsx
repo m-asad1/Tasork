@@ -5,7 +5,7 @@ import { Button, Input, useToast } from '@tasork/ui';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -35,11 +35,12 @@ function LoginForm() {
       // Set the session cookies so middleware can authenticate
       setAccessToken(data.accessToken);
       setUser(data.user);
+      // Lets middleware recognize the session on the very next navigation —
+      // see docs/session-cookies.ts. Must happen before the push, since
+      // middleware checks cookies on the request that push() triggers.
       setSessionCookies(data.user.role);
-      
-      // Redirect to the original path or dashboard
-      const redirect = searchParams.get('redirect') || '/dashboard';
-      router.push(redirect);
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectTo);
     },
     onError: () => {
       toast({
@@ -122,8 +123,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<p className="text-center text-sm text-muted-foreground">Loading...</p>}>
+    <React.Suspense fallback={null}>
       <LoginForm />
-    </Suspense>
+    </React.Suspense>
   );
 }

@@ -1,7 +1,8 @@
-// Tasork — Initial Prisma Schema
-// Scope: authentication + user foundation only, per Sprint 3 Deliverable 37.
-// Business-domain tables (projects, proposals, payments, messaging, etc.)
-// are added in later sprints per docs/12_Database_Planning.md.
+// Tasork — Prisma Schema
+// Sprint 3 scope: authentication + user foundation.
+// Sprint 4 scope (this revision): projects, proposals, payments, messaging,
+// notifications, files, admin/disputes/coupons, and CMS — per
+// docs/12_Database_Planning.md and Sprint 4 deliverables 51–60.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,6 +12,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// =========================================================================
+// Enums
+// =========================================================================
 
 enum UserRole {
   CUSTOMER
@@ -24,93 +29,871 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum ProjectRequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  SUPERSEDED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  PAID
+}
+
+enum ProjectStatus {
+  AWAITING_PAYMENT
+  IN_PROGRESS
+  IN_REVIEW
+  REVISION
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ProjectRole {
+  LEAD
+  CONTRIBUTOR
+  REVIEWER
+}
+
+enum ActivityType {
+  STATUS_CHANGE
+  COMMENT
+  FILE_UPLOAD
+  PROPOSAL_SENT
+  PROPOSAL_ACCEPTED
+  PAYMENT_RECEIVED
+  ASSIGNMENT
+  SYSTEM
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  EASYPAISA
+  JAZZCASH
+  BANK_TRANSFER
+}
+
+enum PaymentType {
+  ADVANCE
+  MILESTONE
+  FINAL
+  FULL
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+}
+
+enum NotificationType {
+  PROJECT_STATUS
+  PROPOSAL_SENT
+  PROPOSAL_ACCEPTED
+  PAYMENT_RECEIVED
+  MESSAGE_RECEIVED
+  FILE_UPLOADED
+  DISPUTE_UPDATE
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+}
+
+enum FileScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  SKIPPED
+}
+
+enum FileVisibility {
+  CLIENT_AND_TEAM
+  TEAM_ONLY
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum CmsSectionKey {
+  HOMEPAGE_HERO
+  HOMEPAGE_FEATURES
+  HOMEPAGE_STATS
+  FOOTER
+  LEGAL_TERMS
+  LEGAL_PRIVACY
+  LEGAL_REFUNDS
+  LEGAL_COOKIES
+}
+
+// =========================================================================
+// Users & Auth (Sprint 3, extended in Sprint 4)
+// =========================================================================
+
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  passwordHash     String? // null for OAuth-only accounts
-  fullName         String
-  avatarUrl        String?
-  role             UserRole  @default(CUSTOMER)
-  provider         AuthProvider @default(LOCAL)
-  providerId       String? // Google `sub`, etc.
+  id              String       @id @default(cuid())
+  email           String       @unique
+  passwordHash    String? // null for OAuth-only accounts
+  fullName        String
+  avatarUrl       String?
+  bio             String?
+  phone           String?
+  timezone        String?
+  role            UserRole     @default(CUSTOMER)
+  provider        AuthProvider @default(LOCAL)
+  providerId      String? // Google `sub`, etc.
 
-  emailVerifiedAt  DateTime?
-  isActive         Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  isActive        Boolean      @default(true)
+  deletedAt       DateTime? // soft delete — see Deliverable 51 "Account deletion"
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  refreshTokens        RefreshToken[]
+  // Auth
+  refreshTokens           RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  emailChangeRequests     EmailChangeRequest[]
+  loginHistory            LoginHistoryEntry[]
   auditLogs               AuditLog[]
 
+  // Projects
+  projectRequests    ProjectRequest[]        @relation("ClientRequests")
+  reviewedRequests   ProjectRequest[]        @relation("ReviewedByAdmin")
+  projectAssignments ProjectAssignment[]
+  activityLogEntries ProjectActivityLog[]
+
+  // Proposals
+  createdProposals Proposal[]
+
+  // Payments
+  payments        Payment[]
+  refundRequests  RefundRequest[]           @relation("RequestedRefunds")
+  reviewedRefunds RefundRequest[]           @relation("ReviewedRefunds")
+
+  // Messaging
+  messages          Message[]
+  conversationReads ConversationParticipant[]
+
+  // Notifications
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+
+  // Files
+  uploadedFiles FileAsset[]
+
+  // Disputes
+  raisedDisputes   Dispute[] @relation("RaisedDisputes")
+  resolvedDisputes Dispute[] @relation("ResolvedDisputes")
+
+  // CMS
+  cmsEdits CmsSection[]
+
   @@index([role])
+  @@index([deletedAt])
   @@map("users")
 }
 
-/// One row per issued refresh token, enabling per-device revocation
-/// and rotation (see docs/14_Security.md — session management).
 model RefreshToken {
-  id         String   @id @default(cuid())
-  tokenHash  String   @unique
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  userAgent  String?
-  ipAddress  String?
+  userAgent String?
+  ipAddress String?
+  label     String? // e.g. derived "Chrome on Windows" for the Active Sessions UI
 
-  revokedAt  DateTime?
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@map("refresh_tokens")
 }
 
 model EmailVerificationToken {
-  id         String   @id @default(cuid())
-  tokenHash  String   @unique
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  expiresAt  DateTime
-  usedAt     DateTime?
-  createdAt  DateTime @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@map("email_verification_tokens")
 }
 
 model PasswordResetToken {
-  id         String   @id @default(cuid())
-  tokenHash  String   @unique
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  expiresAt  DateTime
-  usedAt     DateTime?
-  createdAt  DateTime @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@map("password_reset_tokens")
 }
 
-/// Security-relevant events (login, password change, role change, etc.)
-/// per docs/14_Security.md audit log requirement.
+/// Email-change requires confirming the *new* address before it takes effect
+/// (Deliverable 51 "Email change") — mirrors the verification-token pattern.
+model EmailChangeRequest {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  newEmail  String
+  tokenHash String    @unique
+
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("email_change_requests")
+}
+
+/// Append-only login attempts (success and failure) — "Login history" in
+/// Deliverable 51, distinct from RefreshToken which models *active sessions*.
+model LoginHistoryEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  location  String? // best-effort geo-IP label, resolved async
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("login_history")
+}
+
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  action     String
-  metadata   Json?
-  ipAddress  String?
-  userAgent  String?
+  action    String
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([action])
   @@map("audit_logs")
+}
+
+// =========================================================================
+// Projects (Deliverable 52)
+// =========================================================================
+
+/// The client-submitted request, before any proposal exists.
+model ProjectRequest {
+  id            String               @id @default(cuid())
+  clientId      String
+  client        User                 @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
+
+  title         String
+  category      String
+  description   String
+  budgetRange   String?
+  deadline      DateTime?
+
+  status        ProjectRequestStatus @default(SUBMITTED)
+  declineReason String?
+
+  reviewedById  String?
+  reviewedBy    User?                @relation("ReviewedByAdmin", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt    DateTime?
+
+  archivedAt    DateTime?
+  cancelledAt   DateTime?
+
+  // A request can be duplicated into a fresh draft (Deliverable 52
+  // "Duplicate project") — this traces it back to the original.
+  duplicatedFromId String?
+  duplicatedFrom   ProjectRequest?   @relation("RequestDuplicates", fields: [duplicatedFromId], references: [id], onDelete: SetNull)
+  duplicates       ProjectRequest[]  @relation("RequestDuplicates")
+
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  attachments ProjectAttachment[]
+  activityLog ProjectActivityLog[]
+  proposals   Proposal[]
+  project     Project?
+
+  @@index([clientId])
+  @@index([status])
+  @@map("project_requests")
+}
+
+model ProjectAttachment {
+  id        String          @id @default(cuid())
+  requestId String?
+  request   ProjectRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  fileAssetId String
+  fileAsset   FileAsset     @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime        @default(now())
+
+  @@index([requestId])
+  @@index([projectId])
+  @@map("project_attachments")
+}
+
+/// Unified timeline/activity feed shown on both the request and the
+/// resulting project (Deliverable 52 "Timeline" + "Activity log").
+model ProjectActivityLog {
+  id        String          @id @default(cuid())
+  requestId String?
+  request   ProjectRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  actorId   String?
+  actor     User?           @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  type      ActivityType
+  message   String
+  metadata  Json?
+
+  createdAt DateTime        @default(now())
+
+  @@index([requestId])
+  @@index([projectId])
+  @@map("project_activity_log")
+}
+
+/// The live, paid engagement — created the moment a Proposal is accepted.
+model Project {
+  id         String         @id @default(cuid())
+  requestId  String         @unique
+  request    ProjectRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  proposalId String         @unique
+  proposal   Proposal       @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+
+  status          ProjectStatus @default(AWAITING_PAYMENT)
+  progressPercent Int           @default(0)
+
+  archivedAt  DateTime?
+  cancelledAt DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments  ProjectAssignment[]
+  attachments  ProjectAttachment[]
+  activityLog  ProjectActivityLog[]
+  milestones   Milestone[]
+  payments     Payment[]
+  invoices     Invoice[]
+  conversation Conversation?
+  disputes     Dispute[]
+
+  @@index([status])
+  @@map("projects")
+}
+
+/// Team members assigned to a project (Deliverable 58 "Assign team members").
+model ProjectAssignment {
+  id        String      @id @default(cuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role       ProjectRole @default(CONTRIBUTOR)
+  assignedAt DateTime    @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_assignments")
+}
+
+// =========================================================================
+// Proposals (Deliverable 53)
+// =========================================================================
+
+model Proposal {
+  id        String         @id @default(cuid())
+  requestId String
+  request   ProjectRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  version      Int       @default(1)
+  supersedesId String?   @unique
+  supersedes   Proposal? @relation("ProposalRevisions", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy Proposal? @relation("ProposalRevisions")
+
+  price          Decimal @db.Decimal(10, 2)
+  currency       String  @default("USD")
+  timelineDays   Int
+  scope          String
+  revisionPolicy String
+
+  status        ProposalStatus @default(DRAFT)
+  sentAt        DateTime?
+  expiresAt     DateTime?
+  respondedAt   DateTime?
+  declineReason String?
+
+  pdfFileAssetId String?
+  pdfFileAsset   FileAsset? @relation(fields: [pdfFileAssetId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deliverables ProposalDeliverable[]
+  milestones   Milestone[]
+  project      Project?
+
+  @@index([requestId])
+  @@index([status])
+  @@map("proposals")
+}
+
+model ProposalDeliverable {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int     @default(0)
+
+  @@index([proposalId])
+  @@map("proposal_deliverables")
+}
+
+/// Milestones are authored on the Proposal, then carried onto the Project
+/// once accepted — they double as the payment schedule (Deliverable 54
+/// "Milestone payments").
+model Milestone {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String?
+  amount      Decimal @db.Decimal(10, 2)
+  order       Int     @default(0)
+  dueDate     DateTime?
+
+  status      MilestoneStatus @default(PENDING)
+  submittedAt DateTime?
+  approvedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+
+  @@index([proposalId])
+  @@index([projectId])
+  @@map("milestones")
+}
+
+// =========================================================================
+// Payments (Deliverable 54)
+// =========================================================================
+
+model Payment {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  payerId     String
+  payer       User       @relation(fields: [payerId], references: [id], onDelete: Restrict)
+
+  provider PaymentProvider
+  type     PaymentType
+  status   PaymentStatus   @default(PENDING)
+
+  amount      Decimal @db.Decimal(10, 2)
+  taxAmount   Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+  currency    String  @default("USD")
+
+  providerRef String? // Stripe PaymentIntent ID, PayPal order ID, bank transfer slip ref, etc.
+  metadata    Json?
+
+  paidAt        DateTime?
+  failedAt      DateTime?
+  failureReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoice        Invoice?
+  refundRequests RefundRequest[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Invoice {
+  id        String  @id @default(cuid())
+  number    String  @unique // e.g. INV-2026-000123
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  paymentId String? @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  subtotal  Decimal @db.Decimal(10, 2)
+  taxAmount Decimal @default(0) @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+  currency  String  @default("USD")
+
+  status         InvoiceStatus @default(DRAFT)
+  pdfFileAssetId String?
+  pdfFileAsset   FileAsset?    @relation(fields: [pdfFileAssetId], references: [id], onDelete: SetNull)
+
+  issuedAt DateTime?
+  dueAt    DateTime?
+  paidAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@map("invoices")
+}
+
+model RefundRequest {
+  id            String       @id @default(cuid())
+  paymentId     String
+  payment       Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  requestedById String
+  requestedBy   User         @relation("RequestedRefunds", fields: [requestedById], references: [id], onDelete: Restrict)
+  reviewedById  String?
+  reviewedBy    User?        @relation("ReviewedRefunds", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  amount         Decimal      @db.Decimal(10, 2)
+  reason         String
+  status         RefundStatus @default(PENDING)
+  resolutionNote String?
+
+  reviewedAt  DateTime?
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([status])
+  @@map("refund_requests")
+}
+
+model Coupon {
+  id     String     @id @default(cuid())
+  code   String     @unique
+  type   CouponType
+  value  Decimal    @db.Decimal(10, 2) // percent (0-100) or fixed amount depending on `type`
+
+  maxRedemptions  Int?
+  redemptionCount Int     @default(0)
+  minOrderAmount  Decimal? @db.Decimal(10, 2)
+
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("coupons")
+}
+
+// =========================================================================
+// Messaging (Deliverable 55)
+// =========================================================================
+
+/// One conversation per project — keeps client + assigned team members in a
+/// single thread rather than fragmenting into 1:1 DMs.
+model Conversation {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lastReadAt DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  body      String
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  fileAssets FileAsset[]
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// =========================================================================
+// Notifications (Deliverable 56)
+// =========================================================================
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     NotificationType
+  title    String
+  body     String
+  metadata Json?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+/// Per-user, per-channel, per-type opt-in/out matrix.
+model NotificationPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Stored as a JSON matrix of { [NotificationType]: { IN_APP: bool, EMAIL: bool, PUSH: bool } }
+  // rather than one column per combination — keeps the schema stable as new
+  // notification types are added (see docs/25_Notifications.md).
+  preferences Json @default("{}")
+
+  updatedAt DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+// =========================================================================
+// Files (Deliverable 57)
+// =========================================================================
+
+model FileAsset {
+  id         String @id @default(cuid())
+  uploaderId String
+  uploader   User   @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
+
+  storageKey   String @unique // object key in R2/S3-compatible storage
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+
+  visibility FileVisibility @default(CLIENT_AND_TEAM)
+  scanStatus FileScanStatus @default(PENDING)
+
+  // Versioning: later uploads of "the same" logical file point back to the
+  // first version via `rootId`; `version` increments per root.
+  rootId   String?
+  root     FileAsset?  @relation("FileVersions", fields: [rootId], references: [id], onDelete: SetNull)
+  versions FileAsset[] @relation("FileVersions")
+  version  Int         @default(1)
+
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  projectAttachments ProjectAttachment[]
+  proposalsAsPdf     Proposal[]
+  invoicesAsPdf      Invoice[]
+
+  @@index([uploaderId])
+  @@index([rootId])
+  @@map("file_assets")
+}
+
+// =========================================================================
+// Admin / Disputes (Deliverable 58)
+// =========================================================================
+
+model Dispute {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  raisedById   String
+  raisedBy     User    @relation("RaisedDisputes", fields: [raisedById], references: [id], onDelete: Restrict)
+  resolvedById String?
+  resolvedBy   User?   @relation("ResolvedDisputes", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  subject        String
+  description    String
+  status         DisputeStatus @default(OPEN)
+  resolutionNote String?
+
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@map("disputes")
+}
+
+// =========================================================================
+// CMS (Deliverable 60)
+// =========================================================================
+
+/// Generic editable content block — covers homepage sections, footer, and
+/// legal pages with one flexible model rather than one table per page.
+model CmsSection {
+  id  String        @id @default(cuid())
+  key CmsSectionKey @unique
+
+  content Json // shape depends on `key`; validated at the DTO layer per section
+
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("cms_sections")
+}
+
+model FaqItem {
+  id          String  @id @default(cuid())
+  question    String
+  answer      String
+  order       Int     @default(0)
+  isPublished Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("faq_items")
+}
+
+model Testimonial {
+  id          String  @id @default(cuid())
+  authorName  String
+  authorRole  String?
+  quote       String
+  rating      Int     @default(5)
+  isPublished Boolean @default(true)
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model BlogPost {
+  id            String  @id @default(cuid())
+  slug          String  @unique
+  title         String
+  excerpt       String?
+  content       String
+  coverImageUrl String?
+
+  seoTitle       String?
+  seoDescription String?
+
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished])
+  @@map("blog_posts")
 }

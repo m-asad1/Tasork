@@ -10,6 +10,14 @@ import * as React from 'react';
 
 import { apiClient } from '@/lib/api-client';
 
+export default function VerifyEmailPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <VerifyEmailForm />
+    </React.Suspense>
+  );
+}
+
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -85,10 +93,4 @@ function VerifyEmailForm() {
   );
 }
 
-export default function VerifyEmailPage() {
-  return (
-    <Suspense fallback={<p className="text-center text-sm text-muted-foreground">Loading...</p>}>
-      <VerifyEmailForm />
-    </Suspense>
-  );
-}
+

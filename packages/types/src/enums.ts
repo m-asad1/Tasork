@@ -10,6 +10,7 @@ export enum ProjectRequestStatus {
   UNDER_REVIEW = 'UNDER_REVIEW',
   APPROVED = 'APPROVED',
   DECLINED = 'DECLINED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum ProposalStatus {
@@ -18,6 +19,15 @@ export enum ProposalStatus {
   ACCEPTED = 'ACCEPTED',
   DECLINED = 'DECLINED',
   EXPIRED = 'EXPIRED',
+  SUPERSEDED = 'SUPERSEDED',
+}
+
+export enum MilestoneStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  SUBMITTED = 'SUBMITTED',
+  APPROVED = 'APPROVED',
+  PAID = 'PAID',
 }
 
 export enum ProjectStatus {
@@ -27,11 +37,101 @@ export enum ProjectStatus {
   REVISION = 'REVISION',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum ProjectRole {
+  LEAD = 'LEAD',
+  CONTRIBUTOR = 'CONTRIBUTOR',
+  REVIEWER = 'REVIEWER',
+}
+
+export enum ActivityType {
+  STATUS_CHANGE = 'STATUS_CHANGE',
+  COMMENT = 'COMMENT',
+  FILE_UPLOAD = 'FILE_UPLOAD',
+  PROPOSAL_SENT = 'PROPOSAL_SENT',
+  PROPOSAL_ACCEPTED = 'PROPOSAL_ACCEPTED',
+  PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
+  ASSIGNMENT = 'ASSIGNMENT',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum PaymentProvider {
+  STRIPE = 'STRIPE',
+  PAYPAL = 'PAYPAL',
+  EASYPAISA = 'EASYPAISA',
+  JAZZCASH = 'JAZZCASH',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+}
+
+export enum PaymentType {
+  ADVANCE = 'ADVANCE',
+  MILESTONE = 'MILESTONE',
+  FINAL = 'FINAL',
+  FULL = 'FULL',
 }
 
 export enum PaymentStatus {
   PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
   SUCCEEDED = 'SUCCEEDED',
   FAILED = 'FAILED',
   REFUNDED = 'REFUNDED',
+  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED',
+}
+
+export enum InvoiceStatus {
+  DRAFT = 'DRAFT',
+  ISSUED = 'ISSUED',
+  PAID = 'PAID',
+  VOID = 'VOID',
+}
+
+export enum RefundStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  PROCESSED = 'PROCESSED',
+}
+
+export enum CouponType {
+  PERCENT = 'PERCENT',
+  FIXED = 'FIXED',
+}
+
+export enum NotificationType {
+  PROJECT_STATUS = 'PROJECT_STATUS',
+  PROPOSAL_SENT = 'PROPOSAL_SENT',
+  PROPOSAL_ACCEPTED = 'PROPOSAL_ACCEPTED',
+  PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
+  MESSAGE_RECEIVED = 'MESSAGE_RECEIVED',
+  FILE_UPLOADED = 'FILE_UPLOADED',
+  DISPUTE_UPDATE = 'DISPUTE_UPDATE',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum NotificationChannel {
+  IN_APP = 'IN_APP',
+  EMAIL = 'EMAIL',
+  PUSH = 'PUSH',
+}
+
+export enum FileScanStatus {
+  PENDING = 'PENDING',
+  CLEAN = 'CLEAN',
+  INFECTED = 'INFECTED',
+  SKIPPED = 'SKIPPED',
+}
+
+export enum FileVisibility {
+  CLIENT_AND_TEAM = 'CLIENT_AND_TEAM',
+  TEAM_ONLY = 'TEAM_ONLY',
+}
+
+export enum DisputeStatus {
+  OPEN = 'OPEN',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  RESOLVED = 'RESOLVED',
+  REJECTED = 'REJECTED',
 }

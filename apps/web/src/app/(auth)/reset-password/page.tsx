@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, useToast } from '@tasork/ui';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 
 import { apiClient } from '@/lib/api-client';
@@ -88,8 +89,8 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<p className="text-center text-sm text-muted-foreground">Loading...</p>}>
+    <React.Suspense fallback={null}>
       <ResetPasswordForm />
-    </Suspense>
+    </React.Suspense>
   );
 }
