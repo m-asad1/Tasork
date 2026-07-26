@@ -21,7 +21,7 @@ jobs:
       name: staging
       url: https://staging.tasork.com
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Deploy frontend to Vercel (staging)
         uses: amondnet/vercel-action@v25
@@ -52,7 +52,7 @@ jobs:
       name: production
       url: https://tasork.com
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Deploy frontend to Vercel (production)
         uses: amondnet/vercel-action@v25
