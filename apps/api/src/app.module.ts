@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { HealthController } from '@/app.controller';
@@ -12,6 +13,7 @@ import { MailModule } from '@/modules/mail/mail.module';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { ProjectsModule } from '@/modules/projects/projects.module';
+import { ProposalsModule } from '@/modules/proposals/proposals.module';
 import { QueueModule } from '@/modules/queue/queue.module';
 import { RealtimeModule } from '@/modules/realtime/realtime.module';
 import { RedisModule } from '@/modules/redis/redis.module';
@@ -23,6 +25,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], validate: validateEnv }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 100 }],
     }),
@@ -36,6 +39,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     UsersModule,
     AuthModule,
     ProjectsModule,
+    ProposalsModule,
   ],
   controllers: [HealthController],
   providers: [
