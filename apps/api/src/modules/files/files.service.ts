@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { FileVisibility, UserRole, type User } from '@prisma/client';
@@ -20,6 +21,8 @@ const BLOCKED_EXTENSIONS = ['.exe', '.bat', '.cmd', '.sh', '.msi', '.dll', '.scr
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
@@ -66,8 +69,15 @@ export class FilesService {
       },
     });
 
-    // Fire-and-forget: scan hook runs async so uploads aren't blocked on it.
-    await this.scanQueue.add('scan', { fileAssetId: fileAsset.id, storageKey });
+    // Fire-and-forget: the scan hook runs async so uploads aren't blocked on
+    // it. Deliberately non-fatal — a Redis/queue hiccup should never turn a
+    // successful upload into a failed request. Worst case, this file's
+    // scanStatus stays PENDING until the queue recovers.
+    try {
+      await this.scanQueue.add('scan', { fileAssetId: fileAsset.id, storageKey });
+    } catch (error) {
+      this.logger.error(`Failed to enqueue virus scan for file ${fileAsset.id}: ${(error as Error).message}`);
+    }
 
     return fileAsset;
   }
