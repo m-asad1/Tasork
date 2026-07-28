@@ -10,6 +10,7 @@ import { HealthController } from '@/app.controller';
 import configuration from '@/config/configuration';
 import { validateEnv } from '@/config/env.validation';
 import { AuthModule } from '@/modules/auth/auth.module';
+import { CmsModule } from '@/modules/cms/cms.module';
 import { FilesModule } from '@/modules/files/files.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { MessagingModule } from '@/modules/messaging/messaging.module';
@@ -48,6 +49,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     MessagingModule,
     AdminModule,
     AnalyticsModule,
+    CmsModule,
   ],
   controllers: [HealthController],
   providers: [
