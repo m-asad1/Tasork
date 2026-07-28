@@ -66,7 +66,12 @@ export class DisputesService {
     return dispute;
   }
 
-  async resolve(id: string, admin: User, status: DisputeStatus.RESOLVED | DisputeStatus.REJECTED, resolutionNote: string) {
+  async resolve(
+  id: string,
+  admin: User,
+  status: DisputeStatus,
+  resolutionNote: string,
+) {
     const dispute = await this.prisma.dispute.findUnique({ where: { id } });
     if (!dispute) throw new NotFoundException('Dispute not found');
     if (dispute.status !== DisputeStatus.OPEN && dispute.status !== DisputeStatus.UNDER_REVIEW) {

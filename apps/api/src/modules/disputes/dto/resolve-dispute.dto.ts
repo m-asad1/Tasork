@@ -5,7 +5,7 @@ import { IsEnum, IsString } from 'class-validator';
 export class ResolveDisputeDto {
   @ApiProperty({ enum: [DisputeStatus.RESOLVED, DisputeStatus.REJECTED] })
   @IsEnum(DisputeStatus)
-  status!: DisputeStatus.RESOLVED | DisputeStatus.REJECTED;
+  status!: DisputeStatus;
 
   @ApiProperty()
   @IsString()

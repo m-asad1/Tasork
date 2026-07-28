@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+
 import { Button } from '@tasork/ui';
 import { useMutation } from '@tanstack/react-query';
 import { CheckCircle2, Mail, XCircle } from 'lucide-react';
@@ -32,8 +32,10 @@ function VerifyEmailForm() {
   });
 
   React.useEffect(() => {
-    if (token) verifyMutation.mutate(token);
-  }, [token]);
+  if (token) {
+    verifyMutation.mutate(token);
+  }
+}, [token, verifyMutation]);
 
   if (token) {
     if (verifyMutation.isPending) {
