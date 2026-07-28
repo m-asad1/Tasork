@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AdminModule } from '@/modules/admin/admin.module';
+import { AnalyticsModule } from '@/modules/analytics/analytics.module';
 import { HealthController } from '@/app.controller';
 import configuration from '@/config/configuration';
 import { validateEnv } from '@/config/env.validation';
@@ -46,6 +47,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     PaymentsModule,
     MessagingModule,
     AdminModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
   providers: [
