@@ -10,6 +10,7 @@ import { validateEnv } from '@/config/env.validation';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { FilesModule } from '@/modules/files/files.module';
 import { MailModule } from '@/modules/mail/mail.module';
+import { MessagingModule } from '@/modules/messaging/messaging.module';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { PaymentsModule } from '@/modules/payments/payments.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
@@ -42,6 +43,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     ProjectsModule,
     ProposalsModule,
     PaymentsModule,
+    MessagingModule,
   ],
   controllers: [HealthController],
   providers: [
