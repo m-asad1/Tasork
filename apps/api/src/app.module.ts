@@ -4,13 +4,18 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { AdminModule } from '@/modules/admin/admin.module';
+import { AnalyticsModule } from '@/modules/analytics/analytics.module';
 import { HealthController } from '@/app.controller';
 import configuration from '@/config/configuration';
 import { validateEnv } from '@/config/env.validation';
 import { AuthModule } from '@/modules/auth/auth.module';
+import { CmsModule } from '@/modules/cms/cms.module';
 import { FilesModule } from '@/modules/files/files.module';
 import { MailModule } from '@/modules/mail/mail.module';
+import { MessagingModule } from '@/modules/messaging/messaging.module';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
+import { PaymentsModule } from '@/modules/payments/payments.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { ProjectsModule } from '@/modules/projects/projects.module';
 import { ProposalsModule } from '@/modules/proposals/proposals.module';
@@ -40,6 +45,11 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     AuthModule,
     ProjectsModule,
     ProposalsModule,
+    PaymentsModule,
+    MessagingModule,
+    AdminModule,
+    AnalyticsModule,
+    CmsModule,
   ],
   controllers: [HealthController],
   providers: [

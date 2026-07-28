@@ -1,8 +1,9 @@
-import { Module, type OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Module, type OnModuleDestroy } from '@nestjs/common';
+import type Redis from 'ioredis';
 
 import { MailService } from '@/modules/mail/mail.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { BULLMQ_CONNECTION } from '@/modules/queue/queue.module';
 import { RealtimeModule } from '@/modules/realtime/realtime.module';
 
 import { NotificationsController } from './notifications.controller';
@@ -18,8 +19,12 @@ import { createNotificationWorker } from './processors/notification.worker';
 export class NotificationsModule implements OnModuleDestroy {
   private worker: ReturnType<typeof createNotificationWorker>;
 
-  constructor(config: ConfigService, prisma: PrismaService, mail: MailService) {
-    this.worker = createNotificationWorker(config.get<string>('redis.url')!, prisma, mail);
+  constructor(
+    @Inject(BULLMQ_CONNECTION) connection: Redis,
+    prisma: PrismaService,
+    mail: MailService,
+  ) {
+    this.worker = createNotificationWorker(connection, prisma, mail);
   }
 
   async onModuleDestroy() {

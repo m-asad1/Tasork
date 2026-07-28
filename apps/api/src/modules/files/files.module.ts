@@ -1,7 +1,8 @@
-import { Module, type OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Module, type OnModuleDestroy } from '@nestjs/common';
+import type Redis from 'ioredis';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { BULLMQ_CONNECTION } from '@/modules/queue/queue.module';
 
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
@@ -17,8 +18,11 @@ import { STORAGE_PROVIDER } from './storage/storage.interface';
 export class FilesModule implements OnModuleDestroy {
   private worker: ReturnType<typeof createFileScanWorker>;
 
-  constructor(config: ConfigService, prisma: PrismaService) {
-    this.worker = createFileScanWorker(config.get<string>('redis.url')!, prisma);
+  constructor(
+    @Inject(BULLMQ_CONNECTION) connection: Redis,
+    prisma: PrismaService,
+  ) {
+    this.worker = createFileScanWorker(connection, prisma);
   }
 
   async onModuleDestroy() {

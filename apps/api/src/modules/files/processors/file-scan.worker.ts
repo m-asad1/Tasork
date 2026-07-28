@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Worker, type Job } from 'bullmq';
-import Redis from 'ioredis';
+import type Redis from 'ioredis';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
@@ -19,7 +19,13 @@ async function scanBuffer(_storageKey: string): Promise<'CLEAN' | 'INFECTED'> {
   return 'CLEAN';
 }
 
-export function createFileScanWorker(redisUrl: string, prisma: PrismaService) {
+/**
+ * `connection` is the single shared BULLMQ_CONNECTION ioredis instance (see
+ * queue.module.ts) — BullMQ duplicates it internally wherever a blocking
+ * connection is actually needed, so reusing one instance across every
+ * queue/worker is the documented pattern, not a shortcut.
+ */
+export function createFileScanWorker(connection: Redis, prisma: PrismaService) {
   const logger = new Logger('FileScanWorker');
 
   return new Worker<FileScanJobData>(
@@ -37,6 +43,6 @@ export function createFileScanWorker(redisUrl: string, prisma: PrismaService) {
         logger.warn(`File ${fileAssetId} (${storageKey}) flagged INFECTED by scan hook`);
       }
     },
-    { connection: new Redis(redisUrl, { maxRetriesPerRequest: null }) },
+    { connection },
   );
 }

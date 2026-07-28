@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Worker, type Job } from 'bullmq';
-import Redis from 'ioredis';
+import type Redis from 'ioredis';
 
 import { MailService } from '@/modules/mail/mail.service';
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -13,7 +13,7 @@ interface NotificationJobData {
   body: string;
 }
 
-export function createNotificationWorker(redisUrl: string, prisma: PrismaService, mail: MailService) {
+export function createNotificationWorker(connection: Redis, prisma: PrismaService, mail: MailService) {
   const logger = new Logger('NotificationWorker');
 
   return new Worker<NotificationJobData>(
@@ -33,6 +33,6 @@ export function createNotificationWorker(redisUrl: string, prisma: PrismaService
         logger.log(`[push, no provider configured] ${userId}: ${title}`);
       }
     },
-    { connection: new Redis(redisUrl, { maxRetriesPerRequest: null }) },
+    { connection },
   );
 }

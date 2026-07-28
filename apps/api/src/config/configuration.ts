@@ -21,6 +21,10 @@ export interface AppConfig {
     region: string;
   };
   stripe: { secretKey: string; webhookSecret: string };
+  paypal: { clientId: string; clientSecret: string; mode: 'sandbox' | 'live' };
+  easypaisa: { merchantId: string; storeId: string; accountNumber: string };
+  jazzcash: { merchantId: string; password: string; integritySalt: string };
+  tax: { ratePercent: number };
   throttle: { ttl: number; limit: number };
 }
 
@@ -56,6 +60,24 @@ export default (): AppConfig => ({
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY ?? '',
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+  },
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID ?? '',
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET ?? '',
+    mode: (process.env.PAYPAL_MODE as 'sandbox' | 'live') ?? 'sandbox',
+  },
+  easypaisa: {
+    merchantId: process.env.EASYPAISA_MERCHANT_ID ?? '',
+    storeId: process.env.EASYPAISA_STORE_ID ?? '',
+    accountNumber: process.env.EASYPAISA_ACCOUNT_NUMBER ?? '',
+  },
+  jazzcash: {
+    merchantId: process.env.JAZZCASH_MERCHANT_ID ?? '',
+    password: process.env.JAZZCASH_PASSWORD ?? '',
+    integritySalt: process.env.JAZZCASH_INTEGRITY_SALT ?? '',
+  },
+  tax: {
+    ratePercent: parseFloat(process.env.TAX_RATE_PERCENT ?? '0'),
   },
   throttle: {
     ttl: parseInt(process.env.THROTTLE_TTL ?? '60', 10),

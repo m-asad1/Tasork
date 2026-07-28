@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { Queue } from 'bullmq';
 
@@ -29,6 +29,8 @@ const DEFAULT_CHANNELS: ChannelToggles = { IN_APP: true, EMAIL: true, PUSH: fals
  */
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeGateway: RealtimeGateway,
@@ -38,38 +40,54 @@ export class NotificationsService {
   async notify(input: NotifyInput) {
     const channels = await this.resolveChannels(input.userId, input.type);
 
+    // notify() is called as a side-effect from the middle of business flows
+    // (approving a request, sending a proposal, project creation, ...).
+    // A Redis/queue outage here must never fail the action that triggered
+    // it — so every channel below is best-effort and logs rather than throws.
     let notification = null;
     if (channels.IN_APP) {
-      notification = await this.prisma.notification.create({
-        data: {
+      try {
+        notification = await this.prisma.notification.create({
+          data: {
+            userId: input.userId,
+            type: input.type,
+            title: input.title,
+            body: input.body,
+            metadata: input.metadata as never,
+          },
+        });
+        this.realtimeGateway.emitToUser(input.userId, 'notification:new', notification);
+      } catch (error) {
+        this.logger.error(`Failed to create in-app notification for user ${input.userId}: ${(error as Error).message}`);
+      }
+    }
+
+    if (channels.EMAIL) {
+      try {
+        await this.notificationQueue.add('email-notification', {
           userId: input.userId,
           type: input.type,
           title: input.title,
           body: input.body,
-          metadata: input.metadata as never,
-        },
-      });
-      this.realtimeGateway.emitToUser(input.userId, 'notification:new', notification);
-    }
-
-    if (channels.EMAIL) {
-      await this.notificationQueue.add('email-notification', {
-        userId: input.userId,
-        type: input.type,
-        title: input.title,
-        body: input.body,
-      });
+        });
+      } catch (error) {
+        this.logger.error(`Failed to enqueue email notification for user ${input.userId}: ${(error as Error).message}`);
+      }
     }
 
     // PUSH: enqueued to the same worker so adding a real provider later is a
     // processor change only, not a call-site change across the app.
     if (channels.PUSH) {
-      await this.notificationQueue.add('push-notification', {
-        userId: input.userId,
-        type: input.type,
-        title: input.title,
-        body: input.body,
-      });
+      try {
+        await this.notificationQueue.add('push-notification', {
+          userId: input.userId,
+          type: input.type,
+          title: input.title,
+          body: input.body,
+        });
+      } catch (error) {
+        this.logger.error(`Failed to enqueue push notification for user ${input.userId}: ${(error as Error).message}`);
+      }
     }
 
     return notification;
