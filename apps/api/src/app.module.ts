@@ -11,6 +11,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { FilesModule } from '@/modules/files/files.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
+import { PaymentsModule } from '@/modules/payments/payments.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { ProjectsModule } from '@/modules/projects/projects.module';
 import { ProposalsModule } from '@/modules/proposals/proposals.module';
@@ -40,6 +41,7 @@ import { TransformInterceptor } from '@/common/interceptors/transform.intercepto
     AuthModule,
     ProjectsModule,
     ProposalsModule,
+    PaymentsModule,
   ],
   controllers: [HealthController],
   providers: [
