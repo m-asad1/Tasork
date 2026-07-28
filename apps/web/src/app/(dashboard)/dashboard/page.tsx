@@ -39,8 +39,10 @@ export default function DashboardOverviewPage() {
   const { data: projects } = useQuery({
     queryKey: ['dashboard', 'recent-projects'],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ data: RecentProject[] }>('/projects?limit=5');
-      return data.data;
+      const { data } = await apiClient.get<{ data: { items: RecentProject[]; total: number; page: number; limit: number } }>(
+        '/projects?limit=5',
+      );
+      return data.data.items;
     },
     // Placeholder data so the page renders meaningfully before the API is live.
     placeholderData: [

@@ -136,7 +136,7 @@ export class ProjectsService {
   async cancelRequest(id: string, client: User) {
     const request = await this.mustFindRequest(id);
     this.assertRequestAccess(request, client);
-    if (![ProjectRequestStatus.SUBMITTED, ProjectRequestStatus.UNDER_REVIEW].includes(request.status)) {
+   if (!([ProjectRequestStatus.SUBMITTED, ProjectRequestStatus.UNDER_REVIEW] as ProjectRequestStatus[]).includes(request.status)) {
       throw new ForbiddenException('Only pending requests can be cancelled');
     }
 
@@ -151,7 +151,7 @@ export class ProjectsService {
   async archiveRequest(id: string, requester: User) {
     const request = await this.mustFindRequest(id);
     this.assertRequestAccess(request, requester);
-    if (![ProjectRequestStatus.DECLINED, ProjectRequestStatus.CANCELLED].includes(request.status)) {
+    if (!([ProjectRequestStatus.DECLINED, ProjectRequestStatus.CANCELLED] as ProjectRequestStatus[]).includes(request.status)) {
       throw new ForbiddenException('Only declined or cancelled requests can be archived');
     }
     return this.prisma.projectRequest.update({ where: { id }, data: { archivedAt: new Date() } });
@@ -282,7 +282,7 @@ export class ProjectsService {
     const project = await this.prisma.project.findUnique({ where: { id }, include: { request: true } });
     if (!project) throw new NotFoundException('Project not found');
     await this.assertProjectAccess(project.id, project.request.clientId, requester);
-    if (![ProjectStatus.COMPLETED, ProjectStatus.CANCELLED].includes(project.status)) {
+    if (!([ProjectStatus.COMPLETED, ProjectStatus.CANCELLED] as ProjectStatus[]).includes(project.status)) {
       throw new ForbiddenException('Only completed or cancelled projects can be archived');
     }
     return this.prisma.project.update({ where: { id }, data: { archivedAt: new Date(), status: ProjectStatus.ARCHIVED } });

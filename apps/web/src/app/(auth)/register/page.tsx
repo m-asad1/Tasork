@@ -22,7 +22,12 @@ export default function RegisterPage() {
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
   const mutation = useMutation({
-    mutationFn: (values: RegisterInput) => apiClient.post('/auth/register', values),
+    mutationFn: (values: RegisterInput) => {
+      // Only send fields the backend expects: email, password, fullName
+      // Exclude agreeToTerms and confirmPassword (they're only for client-side validation)
+      const { agreeToTerms, confirmPassword, ...payload } = values;
+      return apiClient.post('/auth/register', payload);
+    },
     onSuccess: (_data, variables) => {
       router.push(`/verify-email?email=${encodeURIComponent(variables.email)}`);
     },

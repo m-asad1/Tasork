@@ -65,7 +65,7 @@ export class ProjectsController {
   ) {
     const p = page ? parseInt(page, 10) : 1;
     const l = limit ? parseInt(limit, 10) : 20;
-    const isStaff = [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT].includes(user.role);
+   const isStaff = ([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT] as UserRole[]).includes(user.role);
     return isStaff
       ? this.projectsService.listRequestsForAdmin(status, p, l)
       : this.projectsService.listRequestsForClient(user.id, p, l);

@@ -16,7 +16,7 @@ export class MailService {
 
   constructor(private readonly config: ConfigService) {
     const apiKey = this.config.get<string>('mail.resendApiKey');
-    this.from = this.config.get<string>('mail.from')!;
+    this.from = this.config.get<string>('mail.from') ?? 'Tasork <noreply@localhost>';
 
     // The Resend SDK throws synchronously if constructed with an empty key,
     // which would crash the whole app on boot in any environment that hasn't
@@ -30,7 +30,6 @@ export class MailService {
       this.resend = new Resend(apiKey);
     }
   }
-}
 
   async send({ to, subject, html }: SendMailOptions) {
     if (!this.resend) {
@@ -47,20 +46,6 @@ export class MailService {
       this.logger.error(`Failed to send email to ${to}: ${(error as Error).message}`);
     }
   }
-
-  try {
-    await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject,
-      html,
-    });
-  } catch (error) {
-    this.logger.error(
-      `Failed to send email to ${to}: ${(error as Error).message}`
-    );
-  }
-}
 
   sendVerificationEmail(to: string, verifyUrl: string) {
     return this.send({
